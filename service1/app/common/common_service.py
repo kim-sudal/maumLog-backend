@@ -59,7 +59,7 @@ class ChatGPTService:
                 print(f"응답 데이터 구조: {response_data}")
                 return ChatGPTErrorVO(
                     error=error_msg,
-                    status_code=500
+                    status_code="500"
                 )
                         
         except Exception as e:
@@ -69,5 +69,5 @@ class ChatGPTService:
             traceback.print_exc()
             return ChatGPTErrorVO(
                 error=f"서비스 처리 중 오류: {str(e)}",
-                status_code=500
+                status_code="500"
             )

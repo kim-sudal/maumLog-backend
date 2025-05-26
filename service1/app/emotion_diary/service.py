@@ -16,7 +16,7 @@ class EmotionDiaryService:
     def get_ai_response(self, vo: DiaryVO) -> DiaryVO:
         """기존 AI 응답 생성 메서드 (변경 없음)"""
         if not vo.content or not vo.content.strip():
-            return DiaryVO(success=False, error="감정일기 내용이 비어있습니다.", status_code=400)
+            return DiaryVO(success=False, error="감정일기 내용이 비어있습니다.", status_code="400")
         
         try:
             # 조건들 수집
@@ -66,7 +66,7 @@ class EmotionDiaryService:
         except Exception as e:
             print(f"❌ 감정일기 처리 중 예외 발생: {str(e)}")
             traceback.print_exc()
-            return DiaryVO(success=False, error=f"처리 중 오류가 발생했습니다: {str(e)}", status_code=500)
+            return DiaryVO(success=False, error=f"처리 중 오류가 발생했습니다: {str(e)}", status_code="500")
     
     # ===== 새로운 CRUD 메서드들 =====
     def create(self, vo: DiaryCreateRequest) -> int:

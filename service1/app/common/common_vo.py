@@ -31,4 +31,4 @@ class ChatGPTResponseVO(BaseModel):
      
 class ChatGPTErrorVO(BaseModel):
     error: str
-    status_code: int
+    status_code: str
