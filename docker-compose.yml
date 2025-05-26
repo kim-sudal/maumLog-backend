@@ -1,0 +1,144 @@
+﻿version: "3.8"
+
+services:
+  # RabbitMQ - 메시지 브로커
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - msa-network
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Config Server - 설정 중앙화
+  config:
+    build: ./config
+    container_name: config
+    ports:
+      - "8888:8888"
+    networks:
+      - msa-network
+    environment:
+      - SERVICE_PORT=8888
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Discovery Server - 서비스 등록/발견
+  discovery:
+    build: ./discovery
+    container_name: discovery
+    depends_on:
+      config:
+        condition: service_healthy
+    ports:
+      - "8761:8761"
+    networks:
+      - msa-network
+    environment:
+      - CONFIG_SERVICE_URL=http://config:8888
+      - SERVICE_PORT=8761
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # API Gateway
+  gateway:
+    build: ./gateway
+    container_name: gateway
+    depends_on:
+      discovery:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    networks:
+      - msa-network
+    environment:
+      - CONFIG_SERVICE_URL=http://config:8888
+      - DISCOVERY_URL=http://discovery:8761
+      - SERVICE_PORT=8080
+      - SERVICE_UPDATE_INTERVAL=30
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Service1 - 비즈니스 서비스
+  service1:
+    build: ./service1
+    container_name: service1
+    depends_on:
+      discovery:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+    networks:
+      - msa-network
+    environment:
+      - CONFIG_SERVICE_URL=http://config:8888
+      - DISCOVERY_SERVICE_URL=http://discovery:8761
+      - SERVICE_NAME=service1
+      - SERVICE_HOST=0.0.0.0
+      - SERVICE_PORT=8001
+      - DATABASE_URL=mysql+pymysql://root:mysql@host.docker.internal:3306/service1
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Service2 - 추가 비즈니스 서비스
+  service2:
+    build: ./service2
+    container_name: service2
+    depends_on:
+      discovery:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "8002:8002"
+    networks:
+      - msa-network
+    environment:
+      - CONFIG_SERVICE_URL=http://config:8888
+      - DISCOVERY_SERVICE_URL=http://discovery:8761
+      - SERVICE_NAME=service2
+      - SERVICE_HOST=0.0.0.0
+      - SERVICE_PORT=8002
+      - DATABASE_URL=mysql+pymysql://root:mysql@host.docker.internal:3306/service2
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+networks:
+  msa-network:
+    driver: bridge
+    name: msa-network
+
+volumes:
+  mysql-data:
+    driver: local
