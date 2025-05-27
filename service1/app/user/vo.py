@@ -25,3 +25,5 @@ class UserVO(BaseModel):
     # 실패 시 필드
     error: Optional[str] = None
     status_code: Optional[int] = None
+
+    access_token: Optional[str] = None 

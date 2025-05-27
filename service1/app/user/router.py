@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from .vo import UserVO
 from .service import UserService
-from app.database import get_db  # 올바른 import 경로
+from app.database import get_db
+from app.utils.token_utils import TokenUtils, get_current_user_idx  # 토큰 유틸만 추가
 import traceback
 
 router = APIRouter(prefix="/user", tags=["user"])
@@ -15,7 +16,7 @@ def signup_user(
     vo: UserVO, 
     service: UserService = Depends(get_service)
 ):
-    """회원가입 엔드포인트"""
+    """회원가입 엔드포인트 (기존 그대로)"""
     try:
         print(f"=== /user/signup 요청 받음 ===")
         print(f"로그인 ID: {vo.login_id}")
@@ -24,7 +25,6 @@ def signup_user(
         
         response = service.signup_user(vo)
         
-        # 에러 응답인 경우 HTTPException 발생
         if not response.success:
             print(f"❌ 회원가입 실패: {response.error}")
             raise HTTPException(
@@ -33,7 +33,6 @@ def signup_user(
             )
         
         print(f"✅ 회원가입 성공: USER_IDX={response.user_idx}")
-        # 응답에서 비밀번호 정보 제거
         response.login_password = None
         response.password_confirm = None
         return response
@@ -53,24 +52,34 @@ def login_user(
     vo: UserVO, 
     service: UserService = Depends(get_service)
 ):
-    """로그인 엔드포인트"""
+    """로그인 엔드포인트 (토큰 발급 추가)"""
     try:
         print(f"=== /user/login 요청 받음 ===")
         print(f"로그인 ID: {vo.login_id}")
         
         response = service.login_user(vo)
         
-        # 에러 응답인 경우 HTTPException 발생
         if not response.success:
             print(f"❌ 로그인 실패: {response.error}")
             raise HTTPException(
-                status_code=response.status_code or 500,
-                detail=response.error or "알 수 없는 오류가 발생했습니다."
+                status_code=response.status_code or 401,
+                detail=response.error or "로그인에 실패했습니다."
             )
         
         print(f"✅ 로그인 성공: USER_IDX={response.user_idx}, USER_NAME={response.user_name}")
-        # 응답에서 비밀번호 정보 제거
+        
+        # 토큰 생성해서 응답에 추가 (기존 response 객체에 token 필드만 추가)
+        token = TokenUtils.create_access_token(
+            user_idx=response.user_idx,
+            login_id=response.login_id,
+            user_name=response.user_name
+        )
+        
+        # 기존 응답에 토큰만 추가
+        response.access_token = token  # UserVO에 access_token 필드 추가 필요
         response.login_password = None
+        
+        print(f"✅ 토큰 발급 완료")
         return response
         
     except HTTPException:
@@ -88,7 +97,7 @@ def check_duplicate(
     vo: UserVO, 
     service: UserService = Depends(get_service)
 ):
-    """중복체크 엔드포인트 (로그인 ID 또는 이메일)"""
+    """중복체크 엔드포인트 (기존 그대로)"""
     try:
         print(f"=== /user/check 요청 받음 ===")
         print(f"체크할 로그인 ID: {vo.login_id}")
@@ -96,7 +105,6 @@ def check_duplicate(
         
         response = service.check_duplicate(vo)
         
-        # 에러 응답인 경우 HTTPException 발생
         if not response.success:
             print(f"❌ 중복체크 실패: {response.error}")
             raise HTTPException(

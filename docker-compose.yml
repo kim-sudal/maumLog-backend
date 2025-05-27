@@ -99,6 +99,8 @@ services:
       - SERVICE_PORT=8001
       - DATABASE_URL=mysql+pymysql://root:mysql@host.docker.internal:3306/service1
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - JWT_SECRET_KEY=A7B9C2D4E6F8G1H3I5J7K9L2M4N6O8P1Q3R5S7T9U2V4W6X8Y1Z3A5B7C9D2E4F6
+      - ACCESS_TOKEN_EXPIRE_HOURS=2
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/actuator/health"]
       interval: 10s

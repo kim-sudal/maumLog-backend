@@ -3,7 +3,6 @@ from typing import Optional
 from datetime import datetime
 
 class DiaryCreateRequest(BaseModel):
-    user_idx: int
     content: str
     condition1: Optional[str] = None
     condition2: Optional[str] = None
@@ -15,7 +14,8 @@ class DiaryCreateRequest(BaseModel):
     condition4_response: Optional[str] = None 
     ai_response: Optional[str] = None
     ai_model: Optional[str] = None
-    record_date: Optional[datetime] = None
+    record_date: Optional[datetime] = None    
+    user_idx: Optional[int] = None
 
 class DiaryUpdateRequest(BaseModel):
     diary_idx: int

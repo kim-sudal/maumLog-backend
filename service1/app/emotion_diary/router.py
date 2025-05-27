@@ -1,247 +1,273 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from .vo import (
-    DiaryVO, DiaryCreateRequest, DiaryUpdateRequest, DiaryDeleteRequest, 
-    DiaryGetRequest, DiaryListRequest, DiaryDateRangeRequest
-)
+from app.database import get_db
+from app.utils.token_utils import get_current_user_idx  # 토큰에서 user_idx 추출
+from .vo import DiaryVO, DiaryCreateRequest, DiaryUpdateRequest, DiaryGetRequest
 from .service import EmotionDiaryService
 from .repository import EmotionDiaryRepository
-from app.database import get_db
 from datetime import datetime
-from typing import Dict, Any
 import traceback
 
-router = APIRouter(prefix="/diaryChat", tags=["diary_chat"])
+router = APIRouter(prefix="/diaryChat", tags=["emotion_diary"])
 
 def get_service(db: Session = Depends(get_db)) -> EmotionDiaryService:
     repo = EmotionDiaryRepository(db)
     return EmotionDiaryService(repo)
 
-# ===== 기존 AI 채팅 엔드포인트 (변경 없음) =====
-@router.post("", response_model=DiaryVO)
-def get_emotion_response(
-    vo: DiaryVO, 
+@router.post("/ai-response", response_model=DiaryVO)
+def get_ai_response(
+    vo: DiaryVO,
     service: EmotionDiaryService = Depends(get_service)
 ):
-    """감정일기에 대한 AI 응답을 받는 엔드포인트"""
+    """AI 응답 생성 (기존 그대로)"""
     try:
-        print(f"=== /diaryChat 요청 받음 ===")
-        print(f"요청 내용: {vo.content}")
-        print(f"조건들: condition1={vo.condition1}, condition2={vo.condition2}, condition3={vo.condition3}, condition4={vo.condition4}")
+        print(f"=== /diary/ai-response 요청 받음 ===")
+        print(f"Content: {vo.content[:100]}..." if vo.content and len(vo.content) > 100 else f"Content: {vo.content}")
         
         response = service.get_ai_response(vo)
         
-        # 에러 응답인 경우 HTTPException 발생
         if not response.success:
-            print(f"❌ 서비스 에러: {response.error}")
+            print(f"❌ AI 응답 생성 실패: {response.error}")
             raise HTTPException(
-                status_code=response.status_code or 500,
-                detail=response.error or "알 수 없는 오류가 발생했습니다."
+                status_code=int(response.status_code) if response.status_code else 500,
+                detail=response.error
             )
         
-        print(f"✅ 성공 응답 반환")
+        print(f"✅ AI 응답 생성 성공")
         return response
         
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ 라우터에서 예외 발생: {str(e)}")
+        print(f"❌ AI 응답 라우터에서 예외 발생: {str(e)}")
         traceback.print_exc()
         raise HTTPException(
             status_code=500,
             detail=f"서버 내부 오류: {str(e)}"
         )
 
-# ===== 새로운 CRUD 엔드포인트들 (모두 POST) =====
-@router.post("/create", response_model=int)
+# 기존 스타일 그대로 유지, 토큰에서 user_idx만 추출해서 사용
+@router.post("/create")
 def create_diary(
-    vo: DiaryCreateRequest, 
+    vo: DiaryCreateRequest,
+    request: Request,  # 토큰 추출용
     service: EmotionDiaryService = Depends(get_service)
 ):
-    """감정일기 생성"""
+    """감정일기 생성 (토큰에서 user_idx 추출)"""
     try:
-        print(f"=== /diaryChat/create 요청 받음 ===")
-        print(f"사용자: {vo.user_idx}, 내용: {vo.content[:50]}...")
+        print(f"=== /diary/create 요청 받음 ===")
         
+        # 토큰에서 user_idx 추출
+        user_idx = get_current_user_idx(request)
+        if not user_idx:
+            raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+        
+        print(f"User IDX (from token): {user_idx}")
+        print(f"Content: {vo.content[:100]}..." if vo.content and len(vo.content) > 100 else f"Content: {vo.content}")
+        
+        # VO에 user_idx 설정 (기존 방식 그대로)
+        vo.user_idx = user_idx
+        
+        # 기존 서비스 호출 방식 그대로
         diary_idx = service.create(vo)
-        if not diary_idx:
-            raise HTTPException(status_code=500, detail="감정일기 생성에 실패했습니다.")
         
-        print(f"✅ 감정일기 생성 성공: ID={diary_idx}")
-        return diary_idx
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ 감정일기 생성 중 예외 발생: {str(e)}")
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail=f"감정일기 생성 중 오류: {str(e)}"
-        )
-
-@router.post("/get", response_model=dict)
-def get_diary(
-    vo: DiaryGetRequest,
-    service: EmotionDiaryService = Depends(get_service)
-):
-    """단일 감정일기 조회"""
-    try:
-        print(f"=== /diaryChat/get 요청 받음 ===")
-        print(f"일기 ID: {vo.diary_idx}")
-        
-        diary = service.get(vo.diary_idx)
-        if not diary:
-            raise HTTPException(status_code=404, detail="해당 일기를 찾을 수 없습니다.")
-        
-        print(f"✅ 감정일기 조회 성공: ID={vo.diary_idx}")
-        return diary
+        return {
+            "success": True,
+            "message": "감정일기가 성공적으로 생성되었습니다.",
+            "diary_idx": diary_idx,
+            "user_idx": user_idx
+        }
         
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ 감정일기 조회 중 예외 발생: {str(e)}")
+        print(f"❌ 감정일기 생성 라우터에서 예외 발생: {str(e)}")
         traceback.print_exc()
         raise HTTPException(
             status_code=500,
-            detail=f"감정일기 조회 중 오류: {str(e)}"
-        )
-
-@router.post("/update", response_model=bool)
-def update_diary(
-    vo: DiaryUpdateRequest,
-    service: EmotionDiaryService = Depends(get_service)
-):
-    """감정일기 수정"""
-    try:
-        print(f"=== /diaryChat/update 요청 받음 ===")
-        print(f"일기 ID: {vo.diary_idx}")
-        
-        success = service.update(vo.diary_idx, vo)
-        if not success:
-            raise HTTPException(status_code=404, detail="해당 일기를 찾을 수 없거나 수정에 실패했습니다.")
-        
-        print(f"✅ 감정일기 수정 성공: ID={vo.diary_idx}")
-        return success
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ 감정일기 수정 중 예외 발생: {str(e)}")
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail=f"감정일기 수정 중 오류: {str(e)}"
-        )
-
-@router.post("/delete", response_model=bool)
-def delete_diary(
-    vo: DiaryDeleteRequest,
-    service: EmotionDiaryService = Depends(get_service)
-):
-    """감정일기 삭제 (논리삭제)"""
-    try:
-        print(f"=== /diaryChat/delete 요청 받음 ===")
-        print(f"일기 ID: {vo.diary_idx}")
-        
-        success = service.delete(vo.diary_idx)
-        if not success:
-            raise HTTPException(status_code=404, detail="해당 일기를 찾을 수 없거나 삭제에 실패했습니다.")
-        
-        print(f"✅ 감정일기 삭제 성공: ID={vo.diary_idx}")
-        return success
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ 감정일기 삭제 중 예외 발생: {str(e)}")
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail=f"감정일기 삭제 중 오류: {str(e)}"
+            detail=f"서버 내부 오류: {str(e)}"
         )
 
 @router.post("/list")
 def get_diary_list(
-    vo: DiaryListRequest,
+    request: Request,  # 토큰 추출용
+    page: int = 1,
+    page_size: int = 10,
     service: EmotionDiaryService = Depends(get_service)
-) -> Dict[str, Any]:
-    """감정일기 목록 조회 (페이징)"""
+):
+    """감정일기 목록 조회 (토큰에서 user_idx 추출)"""
     try:
-        print(f"=== /diaryChat/list 요청 받음 ===")
-        print(f"사용자: {vo.user_idx}, 페이지: {vo.page}, 크기: {vo.page_size}")
+        print(f"=== /diary/list 요청 받음 ===")
         
-        result = service.get_list(vo.user_idx, vo.page, vo.page_size)
+        # 토큰에서 user_idx 추출
+        user_idx = get_current_user_idx(request)
+        if not user_idx:
+            raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
         
-        print(f"✅ 감정일기 목록 조회 성공: {len(result['data'])}개")
-        return result
+        print(f"User IDX (from token): {user_idx}")
+        print(f"Page: {page}, Page Size: {page_size}")
         
-    except Exception as e:
-        print(f"❌ 감정일기 목록 조회 중 예외 발생: {str(e)}")
-        traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail=f"감정일기 목록 조회 중 오류: {str(e)}"
-        )
-
-@router.post("/date-range")
-def get_diaries_by_date_range(
-    vo: DiaryDateRangeRequest,
-    service: EmotionDiaryService = Depends(get_service)
-) -> Dict[str, Any]:
-    """날짜 범위로 감정일기 조회"""
-    try:
-        print(f"=== /diaryChat/date-range 요청 받음 ===")
-        print(f"사용자: {vo.user_idx}, 기간: {vo.start_date} ~ {vo.end_date}")
+        # 기존 서비스 호출 방식 그대로 (user_idx만 토큰에서 가져온 값 사용)
+        result = service.get_list(user_idx, page, page_size)
         
-        # 날짜 문자열을 datetime 객체로 변환
-        try:
-            start_dt = datetime.strptime(vo.start_date, "%Y-%m-%d")
-            end_dt = datetime.strptime(vo.end_date, "%Y-%m-%d")
-            # 종료일은 해당 날짜의 마지막 시간으로 설정
-            end_dt = end_dt.replace(hour=23, minute=59, second=59)
-        except ValueError:
-            raise HTTPException(
-                status_code=400,
-                detail="날짜 형식이 올바르지 않습니다. YYYY-MM-DD 형식을 사용해주세요."
-            )
-        
-        if start_dt > end_dt:
-            raise HTTPException(
-                status_code=400,
-                detail="시작일이 종료일보다 늦을 수 없습니다."
-            )
-        
-        diaries = service.get_by_date_range(vo.user_idx, start_dt, end_dt)
-        
-        result = {
-            'data': diaries,
-            'count': len(diaries),
-            'date_range': {
-                'start_date': vo.start_date,
-                'end_date': vo.end_date
-            }
+        return {
+            "success": True,
+            "message": "감정일기 목록 조회 성공",
+            "data": result['data'],
+            "pagination": result['pagination']
         }
-        
-        print(f"✅ 날짜별 감정일기 조회 성공: {len(diaries)}개")
-        return result
         
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ 날짜별 감정일기 조회 중 예외 발생: {str(e)}")
+        print(f"❌ 감정일기 목록 조회 라우터에서 예외 발생: {str(e)}")
         traceback.print_exc()
         raise HTTPException(
             status_code=500,
-            detail=f"날짜별 감정일기 조회 중 오류: {str(e)}"
+            detail=f"서버 내부 오류: {str(e)}"
         )
 
-# 헬스 체크용 엔드포인트
-@router.get("/health")
-def health_check():
-    """감정일기 API 상태 확인"""
-    return {
-        "status": "healthy",
-        "service": "emotion_diary",
-        "timestamp": datetime.now().isoformat()
-    }
+@router.post("/detail")
+def get_diary_detail(
+    request_data: DiaryGetRequest,  # 이 부분만 변경 (기존: diary_idx: int)
+    request: Request,  # 토큰 추출용
+    service: EmotionDiaryService = Depends(get_service)
+):
+    """감정일기 상세 조회 (토큰에서 user_idx 추출해서 권한 체크)"""
+    try:
+        print(f"=== /diary/detail 요청 받음 ===")
+        
+        # 토큰에서 user_idx 추출
+        user_idx = get_current_user_idx(request)
+        if not user_idx:
+            raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+        
+        diary_idx = request_data.diary_idx  # 이 부분만 변경
+        print(f"User IDX (from token): {user_idx}")
+        print(f"Diary IDX: {diary_idx}")
+        
+        # 기존 서비스 호출
+        diary = service.get(diary_idx)
+        
+        # 권한 체크 (본인 것만 조회 가능)
+        if not diary or diary.get('user_idx') != user_idx:
+            raise HTTPException(
+                status_code=404,
+                detail="감정일기를 찾을 수 없거나 접근 권한이 없습니다."
+            )
+        
+        return {
+            "success": True,
+            "message": "감정일기 조회 성공",
+            "data": diary
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ 감정일기 조회 라우터에서 예외 발생: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"서버 내부 오류: {str(e)}"
+        )
+
+@router.post("/update")
+def update_diary(
+    request_data: DiaryUpdateRequest,  # 이 부분도 동일하게 변경
+    request: Request,  # 토큰 추출용
+    service: EmotionDiaryService = Depends(get_service)
+):
+    """감정일기 수정 (토큰에서 user_idx 추출해서 권한 체크)"""
+    try:
+        print(f"=== /diary/update 요청 받음 ===")
+        
+        # 토큰에서 user_idx 추출
+        user_idx = get_current_user_idx(request)
+        if not user_idx:
+            raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+        
+        diary_idx = request_data.diary_idx  # 이 부분 변경
+        print(f"User IDX (from token): {user_idx}")
+        print(f"Diary IDX: {diary_idx}")
+        
+        # 먼저 해당 일기가 본인 것인지 확인
+        existing_diary = service.get(diary_idx)
+        if not existing_diary or existing_diary.get('user_idx') != user_idx:
+            raise HTTPException(
+                status_code=404,
+                detail="감정일기를 찾을 수 없거나 수정 권한이 없습니다."
+            )
+        
+        # 기존 서비스 호출
+        success = service.update(diary_idx, request_data)  # 이 부분도 변경
+        
+        if not success:
+            raise HTTPException(status_code=500, detail="감정일기 수정에 실패했습니다.")
+        
+        return {
+            "success": True,
+            "message": "감정일기가 성공적으로 수정되었습니다.",
+            "diary_idx": diary_idx,
+            "user_idx": user_idx
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ 감정일기 수정 라우터에서 예외 발생: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"서버 내부 오류: {str(e)}"
+        )
+
+@router.post("/delete")
+def delete_diary(
+    request_data: DiaryGetRequest,  # DELETE도 diary_idx만 필요하니까 DiaryGetRequest 재사용
+    request: Request,  # 토큰 추출용
+    service: EmotionDiaryService = Depends(get_service)
+):
+    """감정일기 삭제 (토큰에서 user_idx 추출해서 권한 체크)"""
+    try:
+        print(f"=== /diary/delete 요청 받음 ===")
+        
+        # 토큰에서 user_idx 추출
+        user_idx = get_current_user_idx(request)
+        if not user_idx:
+            raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
+        
+        diary_idx = request_data.diary_idx  # 이 부분 변경
+        print(f"User IDX (from token): {user_idx}")
+        print(f"Diary IDX: {diary_idx}")
+        
+        # 먼저 해당 일기가 본인 것인지 확인
+        existing_diary = service.get(diary_idx)
+        if not existing_diary or existing_diary.get('user_idx') != user_idx:
+            raise HTTPException(
+                status_code=404,
+                detail="감정일기를 찾을 수 없거나 삭제 권한이 없습니다."
+            )
+        
+        # 기존 서비스 호출
+        success = service.delete(diary_idx)
+        
+        if not success:
+            raise HTTPException(status_code=500, detail="감정일기 삭제에 실패했습니다.")
+        
+        return {
+            "success": True,
+            "message": "감정일기가 성공적으로 삭제되었습니다.",
+            "diary_idx": diary_idx,
+            "user_idx": user_idx
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ 감정일기 삭제 라우터에서 예외 발생: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"서버 내부 오류: {str(e)}"
+        )
