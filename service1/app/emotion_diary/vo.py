@@ -49,19 +49,23 @@ class DiaryDateRangeRequest(BaseModel):
     end_date: str    # YYYY-MM-DD
 
 class DiaryVO(BaseModel):
-    diary_idx: int
-    user_idx: int
-    content: str
+    diary_idx: Optional[int] = None
+    user_idx: Optional[int] = None
+    content: Optional[str] = None
     condition1: Optional[str] = None
     condition2: Optional[str] = None
     condition3: Optional[str] = None
-    ai_select: Optional[str] = None  
+    condition4: Optional[str] = None
+    ai_select: Optional[str] = None      
     condition1_response: Optional[str] = None
     condition2_response: Optional[str] = None
     condition3_response: Optional[str] = None
+    condition4_response: Optional[str] = None  
     ai_response: Optional[str] = None
     ai_model: Optional[str] = None
-    status_code: str
-    reg_date: datetime
+    status_code: Optional[str] = None
+    reg_date: Optional[datetime] = None
     update_date: Optional[datetime] = None
     record_date: Optional[datetime] = None
+    success: Optional[bool] = None 
+    error: Optional[str] = None
