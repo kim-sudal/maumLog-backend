@@ -40,13 +40,14 @@ class DiaryGetRequest(BaseModel):
 
 class DiaryListRequest(BaseModel):
     user_idx: Optional[int] = None
+    start_date: Optional[str] = None  # "2024-05" 형식 추가
     page: int = 1
     page_size: int = 10
 
-class DiaryDateRangeRequest(BaseModel):
-    user_idx: int
-    start_date: str  # YYYY-MM-DD
-    end_date: str    # YYYY-MM-DD
+class DiaryListRequest(BaseModel):
+    page: int = 1
+    page_size: int = 10
+    start_date: Optional[str] = None  # "2025-05" 형식
 
 class DiaryVO(BaseModel):
     diary_idx: Optional[int] = None

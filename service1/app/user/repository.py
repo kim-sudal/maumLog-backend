@@ -50,11 +50,11 @@ class UserRepository:
             query = text("""
                 INSERT INTO tbl_user_info (
                     LOGIN_ID, LOGIN_PASSWORD, USER_NAME, BIRTH_DATE, 
-                    GENDER_CODE, PHONE_NUMBER, EMAIL, USER_DESCRIPTION,
+                    NICKNAME, PHONE_NUMBER, EMAIL, USER_DESCRIPTION,
                     STATUS_CODE, REG_DATE
                 ) VALUES (
                     :login_id, :login_password, :user_name, :birth_date,
-                    :gender_code, :phone_number, :email, :user_description,
+                    :nickname, :phone_number, :email, :user_description,
                     'Y', NOW()
                 )
             """)
@@ -64,7 +64,7 @@ class UserRepository:
                 "login_password": hashed_password,
                 "user_name": user_data['user_name'],
                 "birth_date": user_data.get('birth_date'),
-                "gender_code": user_data.get('gender_code'),
+                "nickname": user_data.get('nickname'),
                 "phone_number": user_data.get('phone_number'),
                 "email": user_data.get('email'),
                 "user_description": user_data.get('user_description')

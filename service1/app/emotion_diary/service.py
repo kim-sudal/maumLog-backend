@@ -85,9 +85,9 @@ class EmotionDiaryService:
         """감정일기 삭제"""
         return self.repo.delete(diary_idx)
     
-    def get_list(self, user_idx: int = None, page: int = 1, page_size: int = 10) -> Dict[str, Any]:
-        """감정일기 목록 조회"""
-        diaries, total_count = self.repo.get_list(user_idx, page, page_size)
+    def get_list(self, user_idx: int = None, start_date: str = None, page: int = 1, page_size: int = 10) -> Dict[str, Any]:
+        """감정일기 목록 조회 (월별 필터링 포함)"""
+        diaries, total_count = self.repo.get_list(user_idx, start_date, page, page_size)
         
         # 페이징 정보 계산
         total_pages = (total_count + page_size - 1) // page_size
@@ -105,7 +105,3 @@ class EmotionDiaryService:
                 'has_prev': has_prev
             }
         }
-    
-    def get_by_date_range(self, user_idx: int, start_date: datetime, end_date: datetime) -> List[dict]:
-        """날짜 범위로 감정일기 조회"""
-        return self.repo.get_by_date_range(user_idx, start_date, end_date)

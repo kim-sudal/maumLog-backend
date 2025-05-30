@@ -32,7 +32,7 @@ class UserService:
                 'login_password': vo.login_password,
                 'user_name': vo.user_name,
                 'birth_date': vo.birth_date,
-                'gender_code': vo.gender_code,
+                'nickname': vo.nickname,
                 'phone_number': vo.phone_number,
                 'email': vo.email,
                 'user_description': vo.user_description
@@ -124,31 +124,9 @@ class UserService:
         if not vo.user_name or not vo.user_name.strip():
             return UserVO(success=False, error="사용자 이름을 입력해주세요.", status_code=400)
         
-        # 형식 검증
-        # 로그인 ID 검증
-        if len(vo.login_id) < 4 or len(vo.login_id) > 30:
-            return UserVO(success=False, error="로그인 아이디는 4자 이상 30자 이하로 입력해주세요.", status_code=400)
-        
-        if not re.match(r'^[a-zA-Z0-9_]+$', vo.login_id):
-            return UserVO(success=False, error="로그인 아이디는 영문, 숫자, 언더바(_)만 사용 가능합니다.", status_code=400)
-        
-        # 비밀번호 검증
-        if len(vo.login_password) < 8:
-            return UserVO(success=False, error="비밀번호는 8자 이상으로 설정해주세요.", status_code=400)
-        
-        if not re.search(r'[A-Za-z]', vo.login_password):
-            return UserVO(success=False, error="비밀번호에는 영문자가 포함되어야 합니다.", status_code=400)
-        
-        if not re.search(r'\d', vo.login_password):
-            return UserVO(success=False, error="비밀번호에는 숫자가 포함되어야 합니다.", status_code=400)
-        
         # 생년월일 검증 
         if vo.birth_date and not re.match(r'^\d{8}$', vo.birth_date):
             return UserVO(success=False, error="생년월일은 YYYYMMDD 형식으로 입력해주세요.", status_code=400)
-        
-        # 성별 검증 
-        if vo.gender_code and vo.gender_code not in ['M', 'F']:
-            return UserVO(success=False, error="성별 코드는 M(남성) 또는 F(여성)만 입력 가능합니다.", status_code=400)
         
         # 전화번호 검증 
         if vo.phone_number and not re.match(r'^01[0-9]-\d{3,4}-\d{4}$', vo.phone_number):

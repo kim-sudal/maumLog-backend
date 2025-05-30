@@ -9,7 +9,7 @@ class UserVO(BaseModel):
     password_confirm: Optional[str] = None  # 비밀번호 확인용 (회원가입 시)
     user_name: Optional[str] = None
     birth_date: Optional[str] = None  # YYYYMMDD 형식
-    gender_code: Optional[str] = None  # M, F 등
+    nickname: Optional[str] = None  # 
     phone_number: Optional[str] = None
     email: Optional[str] = None
     user_description: Optional[str] = None

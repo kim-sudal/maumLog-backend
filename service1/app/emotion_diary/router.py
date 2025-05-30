@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.utils.token_utils import get_current_user_idx  # 토큰에서 user_idx 추출
-from .vo import DiaryVO, DiaryCreateRequest, DiaryUpdateRequest, DiaryGetRequest
+from .vo import DiaryVO, DiaryCreateRequest, DiaryUpdateRequest, DiaryGetRequest ,DiaryListRequest
 from .service import EmotionDiaryService
 from .repository import EmotionDiaryRepository
 from datetime import datetime
+from typing import Optional
 import traceback
 
 router = APIRouter(prefix="/diaryChat", tags=["emotion_diary"])
@@ -90,9 +91,8 @@ def create_diary(
 
 @router.post("/list")
 def get_diary_list(
+    request_data: DiaryListRequest,  # ← Request Body로 받기
     request: Request,  # 토큰 추출용
-    page: int = 1,
-    page_size: int = 10,
     service: EmotionDiaryService = Depends(get_service)
 ):
     """감정일기 목록 조회 (토큰에서 user_idx 추출)"""
@@ -105,10 +105,11 @@ def get_diary_list(
             raise HTTPException(status_code=401, detail="로그인이 필요합니다.")
         
         print(f"User IDX (from token): {user_idx}")
-        print(f"Page: {page}, Page Size: {page_size}")
+        print(f"Start Date: {request_data.start_date}")      
+        print(f"Page: {request_data.page}, Page Size: {request_data.page_size}")  
         
-        # 기존 서비스 호출 방식 그대로 (user_idx만 토큰에서 가져온 값 사용)
-        result = service.get_list(user_idx, page, page_size)
+        # 서비스 호출
+        result = service.get_list(user_idx, request_data.start_date, request_data.page, request_data.page_size)
         
         return {
             "success": True,
