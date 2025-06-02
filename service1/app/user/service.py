@@ -13,10 +13,6 @@ class UserService:
     def signup_user(self, vo: UserVO) -> UserVO:
         """회원가입 처리"""
         try:
-            # 필수 필드 검증
-            validation_result = self._validate_signup_fields(vo)
-            if not validation_result.success:
-                return validation_result
             
             # 로그인 ID 중복 체크
             if self.repository.check_login_id_exists(vo.login_id):
@@ -33,7 +29,6 @@ class UserService:
                 'user_name': vo.user_name,
                 'birth_date': vo.birth_date,
                 'nickname': vo.nickname,
-                'phone_number': vo.phone_number,
                 'email': vo.email,
                 'user_description': vo.user_description
             }
@@ -108,32 +103,99 @@ class UserService:
             print(f"❌ 중복체크 서비스 오류: {str(e)}")
             traceback.print_exc()
             return UserVO(success=False, error="서버 오류가 발생했습니다.", status_code=500)
-    
-    def _validate_signup_fields(self, vo: UserVO) -> UserVO:
-        """회원가입 필드 검증"""
-        # 필수 필드 체크
-        if not vo.login_id or not vo.login_id.strip():
-            return UserVO(success=False, error="로그인 아이디를 입력해주세요.", status_code=400)
-        
-        if not vo.login_password or not vo.login_password.strip():
-            return UserVO(success=False, error="비밀번호를 입력해주세요.", status_code=400)
-        
-        if not vo.password_confirm or vo.login_password != vo.password_confirm:
-            return UserVO(success=False, error="비밀번호가 일치하지 않습니다.", status_code=400)
-        
-        if not vo.user_name or not vo.user_name.strip():
-            return UserVO(success=False, error="사용자 이름을 입력해주세요.", status_code=400)
-        
-        # 생년월일 검증 
-        if vo.birth_date and not re.match(r'^\d{8}$', vo.birth_date):
-            return UserVO(success=False, error="생년월일은 YYYYMMDD 형식으로 입력해주세요.", status_code=400)
-        
-        # 전화번호 검증 
-        if vo.phone_number and not re.match(r'^01[0-9]-\d{3,4}-\d{4}$', vo.phone_number):
-            return UserVO(success=False, error="전화번호는 010-1234-5678 형식으로 입력해주세요.", status_code=400)
-        
-        # 이메일 검증 
-        if vo.email and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', vo.email):
-            return UserVO(success=False, error="올바른 이메일 형식으로 입력해주세요.", status_code=400)
-        
-        return UserVO(success=True)
+
+    def get_user_profile(self, user_idx: int) -> UserVO:
+        """사용자 개인정보 조회"""
+        try:
+            print(f"=== 개인정보 조회 서비스 시작 ===")
+            print(f"조회 대상 USER_IDX: {user_idx}")
+            
+            user_data = self.repository.get_user_by_idx(user_idx)
+            
+            if not user_data:
+                print(f"❌ 사용자 정보를 찾을 수 없음: USER_IDX={user_idx}")
+                return UserVO(success=False, error="사용자 정보를 찾을 수 없습니다.", status_code=404)
+            
+            print(f"✅ 개인정보 조회 완료: {user_data['login_id']}")
+            
+            return UserVO(
+                success=True,
+                user_idx=user_data['user_idx'],
+                login_id=user_data['login_id'],
+                user_name=user_data['user_name'],
+                birth_date=user_data['birth_date'],
+                nickname=user_data['nickname'],
+                email=user_data['email'],
+                user_description=user_data['user_description'],
+                mbti=user_data['mbti'],
+                message="개인정보 조회가 완료되었습니다."
+            )
+            
+        except Exception as e:
+            print(f"❌ 개인정보 조회 서비스 오류: {str(e)}")
+            traceback.print_exc()
+            return UserVO(success=False, error="서버 오류가 발생했습니다.", status_code=500)
+
+    def update_user_profile(self, user_idx: int, vo: UserVO) -> UserVO:
+        """사용자 개인정보 수정"""
+        try:
+            print(f"=== 개인정보 수정 서비스 시작 ===")
+            print(f"수정 대상 USER_IDX: {user_idx}")
+            
+            # 사용자 존재 확인
+            existing_user = self.repository.get_user_by_idx(user_idx)
+            if not existing_user:
+                print(f"❌ 사용자 정보를 찾을 수 없음: USER_IDX={user_idx}")
+                return UserVO(success=False, error="사용자 정보를 찾을 수 없습니다.", status_code=404)
+            
+            # 수정할 데이터 준비
+            update_data = {}
+            
+            if vo.user_name is not None:
+                update_data['user_name'] = vo.user_name
+                print(f"수정 요청 - 사용자명: {vo.user_name}")
+            
+            if vo.birth_date is not None:
+                update_data['birth_date'] = vo.birth_date
+                print(f"수정 요청 - 생년월일: {vo.birth_date}")
+            
+            if vo.nickname is not None:
+                update_data['nickname'] = vo.nickname
+                print(f"수정 요청 - 닉네임: {vo.nickname}")
+            
+            if vo.email is not None:
+                # 이메일 중복 체크 (본인 제외)
+                if self.repository.check_email_exists_exclude_user(vo.email, user_idx):
+                    print(f"❌ 이메일 중복: {vo.email}")
+                    return UserVO(success=False, error="이미 사용중인 이메일입니다.", status_code=400)
+                update_data['email'] = vo.email
+                print(f"수정 요청 - 이메일: {vo.email}")
+            
+            if vo.user_description is not None:
+                update_data['user_description'] = vo.user_description
+                print(f"수정 요청 - 사용자 설명: {vo.user_description}")
+            
+            if vo.mbti is not None:
+                update_data['mbti'] = vo.mbti
+                print(f"수정 요청 - MBTI: {vo.mbti}")
+            
+            if not update_data:
+                print("❌ 수정할 정보가 없음")
+                return UserVO(success=False, error="수정할 정보를 입력해주세요.", status_code=400)
+            
+            # 개인정보 수정
+            update_success = self.repository.update_user(user_idx, update_data)
+            
+            if not update_success:
+                print("❌ 개인정보 수정 실패")
+                return UserVO(success=False, error="개인정보 수정에 실패했습니다.", status_code=500)
+            
+            print("✅ 개인정보 수정 성공")
+            
+            # 수정된 정보 다시 조회해서 반환
+            return self.get_user_profile(user_idx)
+            
+        except Exception as e:
+            print(f"❌ 개인정보 수정 서비스 오류: {str(e)}")
+            traceback.print_exc()
+            return UserVO(success=False, error="서버 오류가 발생했습니다.", status_code=500)    
