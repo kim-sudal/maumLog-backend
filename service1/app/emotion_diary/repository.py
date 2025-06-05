@@ -13,32 +13,47 @@ class EmotionDiaryRepository:
         try:
             sql = text("""
                 INSERT INTO tbl_emotion_diary (
-                    USER_IDX, DIARY_CONTENT, AI_SELECT, CONDITION1, CONDITION2, CONDITION3,
-                    CONDITION1_RESPONSE, CONDITION2_RESPONSE, CONDITION3_RESPONSE, AI_RESPONSE,
+                    USER_IDX, DIARY_CONTENT, AI_SELECT, CONDITION1, CONDITION2, CONDITION3, CONDITION4, CONDITION5, CONDITION6,
+                    CONDITION1_RESPONSE, CONDITION2_RESPONSE, CONDITION3_RESPONSE, CONDITION4_RESPONSE, CONDITION5_RESPONSE, AI_RESPONSE,
                     AI_MODEL, RECORD_DATE, REG_DATE, STATUS_CODE
                 ) VALUES (
-                    :user_idx, :content, :ai_select, :condition1, :condition2, :condition3,
-                    :condition1_response, :condition2_response, :condition3_response, :ai_response,
+                    :user_idx, :content, :ai_select, :condition1, :condition2, :condition3, :condition4, :condition5, :condition6,
+                    :condition1_response, :condition2_response, :condition3_response, :condition4_response, :condition5_response, :ai_response,
                     :ai_model, :record_date, NOW(), 'Y'
                 )
             """)
             
             params = vo.dict()
             
-            # condition4_response를 ai_select로 매핑 (DB의 AI_SELECT 컬럼에 저장)
+            # 응답값 매핑 (기존 로직 유지하면서 새로운 매핑 추가)
             if 'condition4_response' in params:
-                params['ai_select'] = params.pop('condition4_response')
+                params['ai_select'] = params.pop('condition4_response')  # condition4_response → AI_SELECT
             elif 'condition4' in params:
                 params['ai_select'] = params.pop('condition4')
+            
+            # 새로운 응답값 매핑
+            if 'condition5_response' in params:
+                params['condition4_response'] = params.pop('condition5_response')  # condition5_response → CONDITION4_RESPONSE
+            
+            if 'condition6_response' in params:
+                params['condition5_response'] = params.pop('condition6_response')  # condition6_response → CONDITION5_RESPONSE
             
             # 기본값 설정
             if not params.get('record_date'):
                 params['record_date'] = datetime.now()
             
             # 누락된 필드들 기본값 설정
+            params.setdefault('condition1', None)
+            params.setdefault('condition2', None)
+            params.setdefault('condition3', None)
+            params.setdefault('condition4', None)
+            params.setdefault('condition5', None)
+            params.setdefault('condition6', None)  # 조건6은 저장
             params.setdefault('condition1_response', None)
             params.setdefault('condition2_response', None)
             params.setdefault('condition3_response', None)
+            params.setdefault('condition4_response', None)  # condition5_response가 매핑됨
+            params.setdefault('condition5_response', None)  # condition6_response가 매핑됨
             params.setdefault('ai_response', None)
             params.setdefault('ai_model', None)
             
@@ -57,8 +72,8 @@ class EmotionDiaryRepository:
         try:
             sql = text("""
                 SELECT DIARY_IDX, USER_IDX, DIARY_CONTENT, AI_SELECT, 
-                       CONDITION1, CONDITION2, CONDITION3,
-                       CONDITION1_RESPONSE, CONDITION2_RESPONSE, CONDITION3_RESPONSE,
+                       CONDITION1, CONDITION2, CONDITION3, CONDITION4, CONDITION5, CONDITION6,
+                       CONDITION1_RESPONSE, CONDITION2_RESPONSE, CONDITION3_RESPONSE, CONDITION4_RESPONSE, CONDITION5_RESPONSE,
                        AI_RESPONSE, AI_MODEL, STATUS_CODE, REG_DATE, UPDATE_DATE, RECORD_DATE
                 FROM tbl_emotion_diary 
                 WHERE DIARY_IDX = :diary_idx AND STATUS_CODE = 'Y'
@@ -74,10 +89,16 @@ class EmotionDiaryRepository:
                     "condition1": result.CONDITION1,
                     "condition2": result.CONDITION2,
                     "condition3": result.CONDITION3,
-                    "ai_select": result.AI_SELECT,  # condition4_response 값이 저장됨
+                    "condition4": result.CONDITION4,
+                    "condition5": result.CONDITION5,
+                    "condition6": result.CONDITION6,
+                    "ai_select": result.AI_SELECT,  # condition4_response 값이 저장됨 (기존 로직 유지)
                     "condition1_response": result.CONDITION1_RESPONSE,
                     "condition2_response": result.CONDITION2_RESPONSE,
                     "condition3_response": result.CONDITION3_RESPONSE,
+                    "condition4_response": result.AI_SELECT,  # AI_SELECT 값 반환
+                    "condition5_response": result.CONDITION4_RESPONSE,  # CONDITION4_RESPONSE 값 반환
+                    "condition6_response": result.CONDITION5_RESPONSE,  # CONDITION5_RESPONSE 값 반환
                     "ai_response": result.AI_RESPONSE,
                     "ai_model": result.AI_MODEL,
                     "status_code": result.STATUS_CODE,
@@ -110,10 +131,10 @@ class EmotionDiaryRepository:
                 update_fields.append("DIARY_CONTENT = :content")
                 params["content"] = vo_dict['content']
             
-            # condition4_response를 ai_select로 처리 (DB의 AI_SELECT 컬럼에 저장)
+            # 응답값 매핑 처리 (기존 로직 유지하면서 새로운 매핑 추가)
             if 'condition4_response' in vo_dict:
                 update_fields.append("AI_SELECT = :ai_select")
-                params["ai_select"] = vo_dict['condition4_response']
+                params["ai_select"] = vo_dict['condition4_response']  # condition4_response → AI_SELECT
             elif 'condition4' in vo_dict:
                 update_fields.append("AI_SELECT = :ai_select")
                 params["ai_select"] = vo_dict['condition4']
@@ -121,6 +142,16 @@ class EmotionDiaryRepository:
                 update_fields.append("AI_SELECT = :ai_select")
                 params["ai_select"] = vo_dict['ai_select']
             
+            # 새로운 응답값 매핑
+            if 'condition5_response' in vo_dict:
+                update_fields.append("CONDITION4_RESPONSE = :condition4_response")
+                params["condition4_response"] = vo_dict['condition5_response']  # condition5_response → CONDITION4_RESPONSE
+            
+            if 'condition6_response' in vo_dict:
+                update_fields.append("CONDITION5_RESPONSE = :condition5_response")
+                params["condition5_response"] = vo_dict['condition6_response']  # condition6_response → CONDITION5_RESPONSE
+            
+            # 모든 condition 필드들 (1~6)
             if 'condition1' in vo_dict:
                 update_fields.append("CONDITION1 = :condition1")
                 params["condition1"] = vo_dict['condition1']
@@ -133,7 +164,19 @@ class EmotionDiaryRepository:
                 update_fields.append("CONDITION3 = :condition3")
                 params["condition3"] = vo_dict['condition3']
             
-            # 응답 필드들 추가
+            if 'condition4' in vo_dict:
+                update_fields.append("CONDITION4 = :condition4")
+                params["condition4"] = vo_dict['condition4']
+            
+            if 'condition5' in vo_dict:
+                update_fields.append("CONDITION5 = :condition5")
+                params["condition5"] = vo_dict['condition5']
+            
+            if 'condition6' in vo_dict:
+                update_fields.append("CONDITION6 = :condition6")
+                params["condition6"] = vo_dict['condition6']
+            
+            # 기존 응답 필드들 (1~3)
             if 'condition1_response' in vo_dict:
                 update_fields.append("CONDITION1_RESPONSE = :condition1_response")
                 params["condition1_response"] = vo_dict['condition1_response']
@@ -237,6 +280,9 @@ class EmotionDiaryRepository:
                     CONDITION1, CONDITION1_RESPONSE,
                     CONDITION2, CONDITION2_RESPONSE,
                     CONDITION3, CONDITION3_RESPONSE,
+                    CONDITION4, CONDITION4_RESPONSE,
+                    CONDITION5, CONDITION5_RESPONSE,
+                    CONDITION6,
                     AI_SELECT,
                     AI_MODEL,
                     RECORD_DATE,
@@ -264,8 +310,12 @@ class EmotionDiaryRepository:
                     'condition2_response': row.CONDITION2_RESPONSE,
                     'condition3': row.CONDITION3,
                     'condition3_response': row.CONDITION3_RESPONSE,
-                    'condition4': row.AI_SELECT,  # AI_SELECT가 condition4 역할
-                    'condition4_response': row.AI_SELECT,  # AI_SELECT가 condition4_response 역할
+                    'condition4': row.CONDITION4,
+                    'condition4_response': row.AI_SELECT,  # AI_SELECT 값 반환
+                    'condition5': row.CONDITION5,
+                    'condition5_response': row.CONDITION4_RESPONSE,  # CONDITION4_RESPONSE 값 반환
+                    'condition6': row.CONDITION6,
+                    'condition6_response': row.CONDITION5_RESPONSE,  # CONDITION5_RESPONSE 값 반환
                     'ai_model': row.AI_MODEL,
                     'record_date': row.RECORD_DATE.isoformat() if row.RECORD_DATE else None,
                     'update_date': row.UPDATE_DATE.isoformat() if row.UPDATE_DATE else None,

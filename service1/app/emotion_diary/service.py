@@ -20,7 +20,7 @@ class EmotionDiaryService:
         
         try:
             # 조건들 수집
-            conditions = [cond.strip() for cond in [vo.condition1, vo.condition2, vo.condition3, vo.condition4] if cond and cond.strip()]
+            conditions = [cond.strip() for cond in [vo.condition1, vo.condition2, vo.condition3, vo.condition4, vo.condition5, vo.condition6] if cond and cond.strip()]
             
             # ChatGPT 호출 (한 번의 호출로 모든 응답 받기)
             chat_request = ChatGPTRequestVO(prompt=vo.content, max_tokens=1500, temperature=0.7)
@@ -54,12 +54,18 @@ class EmotionDiaryService:
                     result_vo.condition3_response = structured['condition3_response']
                 if 'condition4_response' in structured:
                     result_vo.condition4_response = structured['condition4_response']
+                if 'condition5_response' in structured:
+                    result_vo.condition5_response = structured['condition5_response'] 
+                if 'condition6_response' in structured:
+                    result_vo.condition6_response = structured['condition6_response']                                               
                 
                 # 원본 조건들도 다시 설정 (응답에 포함하기 위해)
                 result_vo.condition1 = vo.condition1
                 result_vo.condition2 = vo.condition2
                 result_vo.condition3 = vo.condition3
                 result_vo.condition4 = vo.condition4
+                result_vo.condition5 = vo.condition5
+                result_vo.condition6 = vo.condition6
             
             return result_vo
             
