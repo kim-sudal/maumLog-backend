@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
 
 # 종속성 파일 복사 및 설치
 COPY requirements.txt .
+RUN apt-get update && apt-get install -y curl
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir cryptography
 

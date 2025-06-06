@@ -22,7 +22,7 @@ app.add_middleware(
 )
 
 # 환경변수 설정
-DISCOVERY_URL = os.getenv("DISCOVERY_URL", "http://discovery:8761")
+DISCOVERY_URL = os.getenv("DISCOVERY_URL", "http://discovery:8762")
 SERVICE_UPDATE_INTERVAL = int(os.getenv("SERVICE_UPDATE_INTERVAL", "30"))
 
 # 서비스 라우트 맵

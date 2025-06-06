@@ -15,8 +15,8 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Service 2")
 
 # Config 서비스 및 Discovery 서비스 URL
-CONFIG_SERVICE_URL = "http://config:8888"
-DISCOVERY_SERVICE_URL = "http://discovery:8761"
+CONFIG_SERVICE_URL = "http://config:8889"
+DISCOVERY_SERVICE_URL = "http://discovery:8762"
 SERVICE_NAME = "service2"
 SERVICE_URL = "http://service2:8082"
 

@@ -6,8 +6,8 @@ services:
     image: rabbitmq:3-management
     container_name: rabbitmq
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "5673:5673"
+      - "15673:15673"
     networks:
       - msa-network
     healthcheck:
@@ -22,13 +22,13 @@ services:
     build: ./config
     container_name: config
     ports:
-      - "8888:8888"
+      - "8889:8889"
     networks:
       - msa-network
     environment:
-      - SERVICE_PORT=8888
+      - SERVICE_PORT=8889
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8889/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -42,14 +42,14 @@ services:
       config:
         condition: service_healthy
     ports:
-      - "8761:8761"
+      - "8762:8762"
     networks:
       - msa-network
     environment:
-      - CONFIG_SERVICE_URL=http://config:8888
-      - SERVICE_PORT=8761
+      - CONFIG_SERVICE_URL=http://config:8889
+      - SERVICE_PORT=8762
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8762/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -67,8 +67,8 @@ services:
     networks:
       - msa-network
     environment:
-      - CONFIG_SERVICE_URL=http://config:8888
-      - DISCOVERY_URL=http://discovery:8761
+      - CONFIG_SERVICE_URL=http://config:8889
+      - DISCOVERY_URL=http://discovery:8762
       - SERVICE_PORT=8080
       - SERVICE_UPDATE_INTERVAL=30
     healthcheck:
@@ -92,14 +92,15 @@ services:
     networks:
       - msa-network
     environment:
-      - CONFIG_SERVICE_URL=http://config:8888
-      - DISCOVERY_SERVICE_URL=http://discovery:8761
+      - CONFIG_SERVICE_URL=http://config:8889
+      - DISCOVERY_SERVICE_URL=http://discovery:8762
       - SERVICE_NAME=service1
       - SERVICE_HOST=0.0.0.0
       - SERVICE_PORT=8001
       - DATABASE_URL=mysql+pymysql://root:mysql@host.docker.internal:3306/service1
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5673/
       - JWT_SECRET_KEY=A7B9C2D4E6F8G1H3I5J7K9L2M4N6O8P1Q3R5S7T9U2V4W6X8Y1Z3A5B7C9D2E4F6
+      - ENCRYPTION_KEY=maumlog_master_encryption_key_2024_secure_emotion_diary_v1
       - ACCESS_TOKEN_EXPIRE_HOURS=2
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/actuator/health"]
@@ -122,13 +123,13 @@ services:
     networks:
       - msa-network
     environment:
-      - CONFIG_SERVICE_URL=http://config:8888
-      - DISCOVERY_SERVICE_URL=http://discovery:8761
+      - CONFIG_SERVICE_URL=http://config:8889
+      - DISCOVERY_SERVICE_URL=http://discovery:8762
       - SERVICE_NAME=service2
       - SERVICE_HOST=0.0.0.0
       - SERVICE_PORT=8002
       - DATABASE_URL=mysql+pymysql://root:mysql@host.docker.internal:3306/service2
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5673/
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/actuator/health"]
       interval: 10s

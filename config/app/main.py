@@ -38,3 +38,8 @@ async def update_config(service_name: str, request: Request):
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+# Docker Compose 헬스체크를 위한 actuator 엔드포인트 추가
+@app.get("/actuator/health")
+async def actuator_health_check():
+    return {"status": "UP"}

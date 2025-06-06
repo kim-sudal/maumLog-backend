@@ -164,8 +164,8 @@ async def startup_event():
     asyncio.create_task(update_service_status())
 
 if __name__ == "__main__":
-    # 환경변수에서 포트 읽기 (기본값: 8761)
-    port = int(os.getenv("SERVICE_PORT", 8761))
+    # 환경변수에서 포트 읽기 (기본값: 8762)
+    port = int(os.getenv("SERVICE_PORT", 8762))
     uvicorn.run(
         app,
         host="0.0.0.0",

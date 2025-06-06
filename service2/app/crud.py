@@ -12,7 +12,7 @@ def create_order(db: Session, order: schemas.OrderCreate):
     # 여기서는 Service1의 아이템을 확인하는 로직이 있을 수 있습니다.
     # 실제 프로덕션에서는 메시지 큐나 적절한 오류 처리를 사용해야 합니다.
     try:
-        # httpx.get("http://service1:8081/items/{order.item_id}")
+        # httpx.get("http://service1:8080/items/{order.item_id}")
         # 아이템 재고 확인 및 업데이트 로직
         pass
     except Exception as e:

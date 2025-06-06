@@ -29,7 +29,7 @@ SERVICE_PORT = int(os.getenv("SERVICE_PORT", "8001"))  # 도커 컴포즈에서 
 INSTANCE_ID = f"{SERVICE_NAME}-{os.getenv('HOSTNAME', str(int(time.time())))}"
 
 # 디스커버리 서비스 연결
-DISCOVERY_URL = os.getenv("DISCOVERY_SERVICE_URL", "http://discovery:8761")
+DISCOVERY_URL = os.getenv("DISCOVERY_SERVICE_URL", "http://discovery:8762")
 
 # 서비스 등록 정보
 def get_service_info():
