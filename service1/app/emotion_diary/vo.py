@@ -50,7 +50,7 @@ class DiaryListRequest(BaseModel):
     user_idx: Optional[int] = None
     start_date: Optional[str] = None  # "2024-05" 형식 추가
     page: int = 1
-    page_size: int = 10
+    page_size: int = 50
 
 class DiaryListRequest(BaseModel):
     page: int = 1
