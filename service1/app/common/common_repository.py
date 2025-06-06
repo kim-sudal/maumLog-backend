@@ -159,7 +159,10 @@ class ChatGPTRepository:
             NO → 아래 2번으로
 
             2. #maum이 없는 조건은 절대 수식어 금지:
-            - 노래 추천 요청 → 감정에 맞는 한국가수들 곡의 정확한 Spotify 링크만 (BTS, BLACKPINK, IU, TWICE 등 유명 아티스트 위주)
+            - market=KR, locale=ko_KR로 Spotify 공식 API에서 한국노래 존재 여부를 반드시 확인할 것  
+            - 트랙 ID를 정확히 복사했는지 재확인할 것  
+            - URL 형식은 https://open.spotify.com/track/{트랙ID}?si={코드} 이어야 함  
+            - 한국노래 트랙 URL 3개 이상 제공할 것  
             - 감정스코어 요청 → 오직 '숫자/100' 형태로만
             - MBTI 위로 요청 → MBTI 유형이 포함되어 있으면 해당 유형 특성에 맞는 위로, MBTI가 없으면 일반적인 따뜻한 위로
             - 감정코드 분석 → 감정코드 중 선택하여 영어값만 하나만 반환
@@ -199,7 +202,7 @@ class ChatGPTRepository:
             축하합니다, 추천드릴게요, ~입니다, ~네요, ~어떨까요, 완벽한, 자신감에 가득 찬
 
             올바른 예시:
-            노래 추천 요청 → https://open.spotify.com/track/3HAkoNmThZhyFejhpRXXYI?si=cbf278cca9e24ffb
+            노래 추천 요청 → https://open.spotify.com/track/3HAkoNmThZhyFejhpRXXYI?si=cbf278cca9e24ffb,https://open.spotify.com/track/3jsYQw78lrxJA2ysnmOIf9
             감정스코어 → 70/100
             감정코드 → CM
             MBTI 위로 → MBTI 있음: 'ENFP라서 새로운 사람들과의 만남이 정말 즐거웠을 것 같아요' / MBTI 없음: '오늘 하루도 정말 수고 많으셨어요'
